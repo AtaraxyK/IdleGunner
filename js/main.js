@@ -34,6 +34,11 @@ window.addEventListener('DOMContentLoaded', () => {
   UI.renderGuns();
   UI.renderFreezeBtn();
 
+  // 저장 시점에 사망 상태였으면 오버레이 복원
+  if (State.player.isDead) {
+    UI.showDeathOverlay();
+  }
+
   // 탭
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => UI.setActiveTab(btn.dataset.tab));
