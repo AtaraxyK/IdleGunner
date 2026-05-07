@@ -9,28 +9,30 @@ const State = {
 
   stage: {
     current:    1,
-    enemyIndex: 0,   // 0~9 (0번=1번째 적)
+    enemyIndex: 0,
     frozen:     false,
     maxReached: 1,
   },
 
-  enemy: null,  // 현재 적 객체
+  enemy: null,
 
   resources: {
     drops:         0,
     stones:        0,
     fragments:     0,
     artifacts:     [],
-    // 강화석 누적 추적 (환생 시 정산)
-    normalKills:   0,   // 일반 몬스터 처치 수 (강화석 정산용)
-    pendingStones: 0,   // 환생 시 지급될 강화석
+    normalKills:   0,
+    pendingStones: 0,
   },
 
   upgrades: {
     // 기본 강화 (전리품)
-    basicHp:      0,
-    basicGunAtk:  0,
-    basicGunSlot: 0,
+    basicHp:       0,
+    basicGunAtk:   0,
+    basicCrit:     0,
+    basicCritDmg:  0,
+    basicAtkSpeed: 0,
+    basicGunSlot:  0,
     // 강화석 강화
     stoneHp:       0,
     stoneGunAtk:   0,
@@ -38,32 +40,32 @@ const State = {
     stoneCritDmg:  0,
     stoneAtkSpeed: 0,
     stoneGunSlot:  0,
-    stoneDropBonus:0,
+    stoneDrop:     0,
+    stoneExp:      0,
   },
 
   guns: {
-    equipped:   [],   // null or gun object, length = computed.gunSlots
-    pendingGun: null, // 획득 대기 중인 총기
+    equipped: [],
+    queue:    [],  // 획득 대기 총기 목록
   },
 
-  // 오프라인 계산용 저장 타임스탬프
   lastSaveTime: 0,
 
-  // ── 계산된 스탯 (recalculate() 후 갱신) ──
   computed: {
-    maxHp:          100,
-    gunSlots:       1,
-    gunAtkBonus:    0,    // flat
-    gunAtkMult:     1.0,  // ×
-    critBonus:      0,    // 10000 기준
-    critDmgBonus:   0,    // %
-    atkSpeedBonus:  0,    // attackInterval 감소
-    dropMult:       1.0,
+    maxHp:         100,
+    gunSlots:      1,
+    gunAtkBonus:   0,
+    gunAtkMult:    1.0,
+    critBonus:     0,
+    critDmgBonus:  0,
+    atkSpeedBonus: 0,
+    dropMult:      1.0,
+    expMult:       1.0,
   },
 
   init() {
-    const gun = Object.assign({}, C.DEFAULT_GUN);
-    this.guns.equipped = [gun];
+    this.guns.equipped = [Object.assign({}, C.DEFAULT_GUN)];
+    this.guns.queue    = [];
     this.recalculate();
     this.player.hp    = this.computed.maxHp;
     this.player.maxHp = this.computed.maxHp;
@@ -75,38 +77,42 @@ const State = {
     const c = this.computed;
 
     c.maxHp = C.PLAYER_BASE_HP
-      + u.basicHp     * C.BASIC_HP_PER_LEVEL
-      + u.stoneHp     * C.STONE_HP_PER_LEVEL;
-
-    // 유물 HP 보너스
-    const artHp = this._artifactMult('art_hp');
-    c.maxHp = Math.floor(c.maxHp * artHp);
+      + u.basicHp  * C.BASIC_HP_PER_LEVEL
+      + u.stoneHp  * C.STONE_HP_PER_LEVEL;
+    c.maxHp = Math.floor(c.maxHp * this._artifactMult('art_hp'));
 
     c.gunSlots = C.PLAYER_BASE_GUN_SLOTS
       + u.basicGunSlot
       + u.stoneGunSlot;
 
-    c.gunAtkBonus   = u.basicGunAtk * C.BASIC_GUN_ATK_PER_LEVEL;
+    c.gunAtkBonus   = u.basicGunAtk  * C.BASIC_GUN_ATK_PER_LEVEL;
     c.gunAtkMult    = (1 + u.stoneGunAtk * C.STONE_GUN_ATK_MULT_PER_LEVEL)
                     * this._artifactMult('art_atk');
-    c.critBonus     = u.stoneCrit    * C.STONE_CRIT_PER_LEVEL
+
+    c.critBonus     = u.basicCrit   * C.BASIC_CRIT_PER_LEVEL
+                    + u.stoneCrit   * C.STONE_CRIT_PER_LEVEL
                     + this._artifactFlat('art_crit', 500);
-    c.critDmgBonus  = u.stoneCritDmg * C.STONE_CRIT_DMG_PER_LEVEL
+
+    c.critDmgBonus  = u.basicCritDmg  * C.BASIC_CRIT_DMG_PER_LEVEL
+                    + u.stoneCritDmg  * C.STONE_CRIT_DMG_PER_LEVEL
                     + this._artifactFlat('art_critdmg', 25);
-    c.atkSpeedBonus = u.stoneAtkSpeed * C.STONE_ATK_SPEED_PER_LEVEL
+
+    c.atkSpeedBonus = u.basicAtkSpeed  * C.BASIC_ATK_SPEED_PER_LEVEL
+                    + u.stoneAtkSpeed  * C.STONE_ATK_SPEED_PER_LEVEL
                     + this._artifactFlat('art_speed', 5);
-    c.dropMult      = (1 + u.stoneDropBonus * C.STONE_DROP_BONUS_PER_LEVEL)
+
+    c.dropMult      = (1 + u.stoneDrop * C.STONE_DROP_PER_LEVEL)
                     * this._artifactMult('art_drop');
+
+    c.expMult       = 1 + u.stoneExp * C.STONE_EXP_PER_LEVEL;
   },
 
-  // 장착 슬롯 수 변동 시 배열 길이 동기화
   syncGunSlots() {
     const target = this.computed.gunSlots;
     while (this.guns.equipped.length < target) this.guns.equipped.push(null);
     while (this.guns.equipped.length > target) this.guns.equipped.pop();
   },
 
-  // 총기 1정의 실효 스탯 반환
   getGunStats(gun) {
     if (!gun) return null;
     const c = this.computed;
@@ -118,26 +124,24 @@ const State = {
     };
   },
 
-  // 전체 총기 합산 DPS (복귀 연산용)
-  getTotalDPS() {
-    let dps = 0;
-    for (const gun of this.guns.equipped) {
-      if (!gun) continue;
-      const s = this.getGunStats(gun);
-      const avgDmg        = s.attack * (1 + (s.critChance / 10000) * (s.critDmg / 100));
-      const attacksPerSec = 60 / s.attackInterval;
-      dps += avgDmg * attacksPerSec;
-    }
-    return dps;
+  // 총기 1정 예상 DPS
+  getGunDPS(gun) {
+    const s = this.getGunStats(gun);
+    if (!s) return 0;
+    const avgDmg = s.attack * (1 + (s.critChance / 10000) * (s.critDmg / 100));
+    return avgDmg * (60 / s.attackInterval);
   },
 
-  // ── 내부 유물 헬퍼 ──
+  getTotalDPS() {
+    return this.guns.equipped.reduce((sum, g) => sum + (g ? this.getGunDPS(g) : 0), 0);
+  },
+
   _artifactLevel(id) {
     const a = this.resources.artifacts.find(x => x.id === id);
     return a ? a.level : 0;
   },
   _artifactMult(id) {
-    const lvl = this._artifactLevel(id);
+    const lvl  = this._artifactLevel(id);
     const base = { art_hp: 0.20, art_atk: 0.15, art_drop: 0.25 };
     return 1 + lvl * (base[id] || 0);
   },

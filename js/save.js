@@ -18,6 +18,7 @@ const Save = {
       upgrades:  { ...State.upgrades },
       guns: {
         equipped: State.guns.equipped.map(g => g ? { ...g } : null),
+        queue:    State.guns.queue.map(g => ({ ...g })),
       },
     };
     try {
@@ -30,7 +31,6 @@ const Save = {
   load() {
     const raw = localStorage.getItem(this.KEY);
     if (!raw) return false;
-
     try {
       const d = JSON.parse(raw);
       if (!d || d.ver !== 1) return false;
@@ -41,15 +41,15 @@ const Save = {
       Object.assign(State.resources, d.resources);
       Object.assign(State.upgrades,  d.upgrades);
 
-      if (d.guns?.equipped) {
-        State.guns.equipped = d.guns.equipped;
+      if (d.guns) {
+        State.guns.equipped = d.guns.equipped || [];
+        State.guns.queue    = d.guns.queue    || [];
       }
 
       State.recalculate();
       State.syncGunSlots();
       State.lastSaveTime = d.saveTime || Date.now();
 
-      // 오프라인 보상
       const elapsed = (Date.now() - d.saveTime) / 1000;
       Combat.calcOfflineRewards(elapsed);
 
