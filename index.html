@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>방치 도시</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- 상단 리소스 바 -->
+  <div id="resources-bar">
+    <div class="resource-item">
+      <span class="resource-label">스테이지</span>
+      <span id="stage-display" class="resource-value">1-1</span>
+    </div>
+    <div class="resource-item">
+      <span class="resource-label">최고 스테이지</span>
+      <span id="max-stage-display" class="resource-value">1</span>
+    </div>
+    <div class="resource-item">
+      <span class="resource-label">몬스터 전리품</span>
+      <span id="drops-display" class="resource-value">0</span>
+    </div>
+    <div class="resource-item">
+      <span class="resource-label">강화석</span>
+      <span id="stones-display" class="resource-value">0</span>
+    </div>
+    <div class="resource-item">
+      <span class="resource-label">총기 조각</span>
+      <span id="fragments-display" class="resource-value">0</span>
+    </div>
+    <div class="resource-item">
+      <span class="resource-label">DPS</span>
+      <span id="dps-display" class="resource-value">0</span>
+    </div>
+  </div>
+
+  <!-- 메인 영역 -->
+  <div id="main-area">
+
+    <!-- 전투 패널 -->
+    <div id="combat-panel">
+      <div id="player-section">
+        <div class="section-label">플레이어</div>
+        <div class="hp-bar-wrap">
+          <div id="player-hp-bar" class="hp-bar player-hp-bar"></div>
+          <span id="player-hp-text" class="hp-text"></span>
+        </div>
+      </div>
+
+      <div id="enemy-section">
+        <div id="enemy-name" class="enemy-name">-</div>
+        <div class="hp-bar-wrap">
+          <div id="enemy-hp-bar" class="hp-bar enemy-hp-bar"></div>
+          <span id="enemy-hp-text" class="hp-text"></span>
+        </div>
+        <div id="enemy-atk-text" class="enemy-atk-text"></div>
+      </div>
+
+      <div id="combat-log"></div>
+
+      <div id="combat-buttons">
+        <button id="freeze-btn" class="btn">진행 멈춤</button>
+      </div>
+    </div>
+
+    <!-- 총기 패널 -->
+    <div id="guns-panel">
+      <div class="panel-title">장착 총기</div>
+      <div id="gun-slots"></div>
+    </div>
+
+  </div>
+
+  <!-- 강화 패널 -->
+  <div id="upgrade-panel">
+    <div id="upgrade-tabs">
+      <button class="tab-btn active" data-tab="basic">기본 강화 (전리품)</button>
+      <button class="tab-btn" data-tab="stone">강화석 강화</button>
+      <button class="tab-btn" data-tab="artifacts">유물</button>
+    </div>
+    <div id="upgrade-content"></div>
+  </div>
+
+  <!-- 사망 오버레이 -->
+  <div id="death-overlay" class="overlay hidden">
+    <div class="overlay-box">
+      <div class="overlay-title">💀 사망</div>
+      <div class="overlay-desc">강화석은 유지됩니다.</div>
+      <div class="overlay-pending-stones">환생 시 획득 강화석: <span id="pending-stones-text">0</span></div>
+      <div class="overlay-btns">
+        <button id="continue-btn" class="btn btn-blue">진행 멈춤<br><small>이전 스테이지에서 재시작</small></button>
+        <button id="rebirth-btn" class="btn btn-orange">환생<br><small>강화석 정산 후 전부 리셋</small></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 총기 획득 오버레이 -->
+  <div id="gun-acquire-overlay" class="overlay hidden">
+    <div class="overlay-box">
+      <div class="overlay-title">🔫 총기 획득!</div>
+      <div id="new-gun-info"></div>
+      <div class="overlay-desc" style="margin-top:8px">장착할 슬롯 선택:</div>
+      <div id="gun-slot-select"></div>
+      <div class="overlay-btns">
+        <button id="gun-equip-btn" class="btn btn-blue">장착하기</button>
+        <button id="gun-discard-btn" class="btn btn-gray">해체하기 <span id="discard-frags-text"></span></button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/constants.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/combat.js"></script>
+  <script src="js/upgrades.js"></script>
+  <script src="js/save.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
